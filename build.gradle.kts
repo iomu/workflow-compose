@@ -1,13 +1,17 @@
 buildscript {
+    val kotlin_version by extra("1.5.30")
     repositories {
         gradlePluginPortal()
-        jcenter()
         google()
         mavenCentral()
+        maven {
+            url = uri("https://plugins.gradle.org/m2/")
+        }
     }
     dependencies {
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.10")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.21")
         classpath("com.android.tools.build:gradle:4.0.1")
+        classpath("me.champeau.jmh:jmh-gradle-plugin:0.6.5")
     }
 }
 
@@ -16,8 +20,8 @@ version = "1.0"
 
 allprojects {
     repositories {
-        jcenter()
         mavenCentral()
         maven { url = uri("https://maven.pkg.jetbrains.space/public/p/compose/dev") }
+        google()
     }
 }

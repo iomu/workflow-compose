@@ -1,12 +1,12 @@
 package dev.jomu.workflow
 
 import androidx.compose.runtime.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.awaitCancellation
+import androidx.compose.runtime.saveable.LocalSaveableStateRegistry
+import androidx.compose.runtime.saveable.SaveableStateRegistry
+import androidx.compose.runtime.snapshots.Snapshot
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 
 
 private class RenderContextImpl<in OutputT>(private val onOutput: (OutputT) -> Unit) :
@@ -18,7 +18,7 @@ private class RenderContextImpl<in OutputT>(private val onOutput: (OutputT) -> U
     }
 
     @Composable
-    override fun <ChildPropsT, ChildOutputT, ChildRenderingT> renderChild(
+    override fun <ChildPropsT, ChildOutputT, ChildRenderingT : Any> renderChild(
         child: Workflow<ChildPropsT, ChildOutputT, ChildRenderingT>,
         props: ChildPropsT,
         handler: EventHandlerScope<OutputT>.(ChildOutputT) -> Unit
@@ -31,41 +31,34 @@ private class RenderContextImpl<in OutputT>(private val onOutput: (OutputT) -> U
         }
     }
 
-    @Composable
-    override fun eventHandler(func: EventHandlerScope<OutputT>.() -> Unit): () -> Unit {
-        val state = remember {
-            Ref(func)
-        }.apply {
-            value = func
+    inner class Scope<T>(initial: T, private val handlerScope: EventHandlerScope<OutputT>) :
+        BaseRenderContext.TransformedValueScope<T, OutputT> {
+        var current: T = initial
+        override fun setOutput(output: OutputT) {
+            handlerScope.setOutput(output)
         }
 
-        return remember {
-            {
-                val handler = state.value
-                handlerScope.handler()
-            }
-        }
+        override val value: T
+            get() = current
+
     }
 
     @Composable
-    override fun <T> eventHandler(func: EventHandlerScope<OutputT>.(T) -> Unit): (T) -> Unit {
-        val state = remember {
-            Ref(func)
+    override fun <T, U> rememberTransformedValue(value: T, block: BaseRenderContext.TransformedValueScope<T, OutputT>.() -> U): U {
+        val scope = remember {
+            Scope(value, handlerScope)
         }.apply {
-            value = func
+            this.current = value
         }
 
         return remember {
-            {
-                val handler = state.value
-                handlerScope.handler(it)
-            }
+            scope.block()
         }
     }
 }
 
 @Composable
-private fun <PropsT, RenderingT, OutputT> ProducerScope<RenderingT>.produceWorkflowState(
+private fun <PropsT, RenderingT : Any, OutputT> ProducerScope<RenderingT>.produceWorkflowState(
     workflow: Workflow<PropsT, OutputT, RenderingT>,
     context: Workflow<PropsT, OutputT, RenderingT>.RenderContext,
     props: PropsT,
@@ -74,20 +67,23 @@ private fun <PropsT, RenderingT, OutputT> ProducerScope<RenderingT>.produceWorkf
 }
 
 @Composable
-private fun <PropsT, RenderingT, OutputT> renderWorkflow(
+private fun <PropsT, RenderingT : Any, OutputT> renderWorkflowToState(
+    workflow: Workflow<PropsT, OutputT, RenderingT>,
+    context: Workflow<PropsT, OutputT, RenderingT>.RenderContext,
+    props: PropsT,
+    state: MutableState<RenderingT>
+) {
+    state.value = workflow.render(context, props)
+}
+
+@Composable
+private fun <PropsT, RenderingT : Any, OutputT> renderWorkflow(
     workflow: Workflow<PropsT, OutputT, RenderingT>,
     props: PropsT,
     onOutput: (OutputT) -> Unit
 ): State<RenderingT> {
-    val state = remember { mutableStateOf<RenderingT?>(null) }
-
-    val scope: ProducerScope<RenderingT> = remember(state) {
-        object : ProducerScope<RenderingT> {
-            override fun emit(value: RenderingT) {
-                state.value = value
-            }
-        }
-    }
+    // will always be set to a non-null value before we return
+    val state = remember { mutableStateOf<RenderingT?>(null) as MutableState<RenderingT> }
 
     val context = remember(workflow) {
         val base = RenderContextImpl(onOutput)
@@ -96,21 +92,17 @@ private fun <PropsT, RenderingT, OutputT> renderWorkflow(
         }
     }
 
-    scope.produceWorkflowState(workflow, context, props)
+    renderWorkflowToState(workflow, context, props, state)
 
-    return remember {
-        derivedStateOf {
-            state.value!!
-        }
-    }
+    return state
 }
 
 @Stable
-private interface ProducerScope<T> {
+internal interface ProducerScope<T> {
     fun emit(value: T)
 }
 
-private class Ref<T>(var value: T)
+class Ref<T>(var value: T)
 
 private object ImmediateClock : MonotonicFrameClock {
     override suspend fun <R> withFrameNanos(onFrame: (frameTimeNanos: Long) -> R): R {
@@ -118,19 +110,25 @@ private object ImmediateClock : MonotonicFrameClock {
     }
 }
 
-fun <PropsT, RenderingT : Any, OutputT> Workflow<PropsT, OutputT, RenderingT>.asStateFlow(
+public fun <PropsT, RenderingT : Any, OutputT> Workflow<PropsT, OutputT, RenderingT>.renderAsFlow(
     scope: CoroutineScope,
     props: PropsT,
+    saveableStateRegistry: SaveableStateRegistry? = null,
     onOutput: (OutputT) -> Unit,
 ): StateFlow<RenderingT> {
-    return asStateFlow(scope, MutableStateFlow(props), onOutput)
+    return renderAsFlow(scope, MutableStateFlow(props), saveableStateRegistry, onOutput)
 }
 
-fun <PropsT, RenderingT : Any, OutputT> Workflow<PropsT, OutputT, RenderingT>.asStateFlow(
+public fun <PropsT, RenderingT : Any, OutputT> Workflow<PropsT, OutputT, RenderingT>.renderAsFlow(
     scope: CoroutineScope,
     props: StateFlow<PropsT>,
+    saveableStateRegistry: SaveableStateRegistry? = null,
     onOutput: (OutputT) -> Unit,
 ): StateFlow<RenderingT> {
+    val handle = Snapshot.registerGlobalWriteObserver {
+        Snapshot.sendApplyNotifications()
+    }
+
     val job = Job(scope.coroutineContext[Job])
     val composeContext = scope.coroutineContext + ImmediateClock + job
 
@@ -143,11 +141,12 @@ fun <PropsT, RenderingT : Any, OutputT> Workflow<PropsT, OutputT, RenderingT>.as
     val composition = Composition(ForbiddenApplier, recomposer).apply {
         setContent {
             val prop by props.collectAsState()
-            val state = renderWorkflow(this@asStateFlow, props = prop, onOutput)
-
-            DisposableEffect(state.value) {
-                callback.value.invoke(state.value)
-                onDispose { }
+            CompositionLocalProvider(LocalSaveableStateRegistry provides saveableStateRegistry) {
+                val state = renderWorkflow(this@renderAsFlow, props = prop, onOutput)
+                DisposableEffect(state.value) {
+                    callback.value.invoke(state.value)
+                    onDispose { }
+                }
             }
         }
     }
@@ -166,6 +165,7 @@ fun <PropsT, RenderingT : Any, OutputT> Workflow<PropsT, OutputT, RenderingT>.as
         try {
             awaitCancellation()
         } finally {
+            handle.dispose()
             recomposer.close()
             recomposer.join()
             composition.dispose()
