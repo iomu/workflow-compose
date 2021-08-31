@@ -2,9 +2,8 @@ import org.jetbrains.compose.compose
 
 plugins {
     kotlin("multiplatform")
-    id("org.jetbrains.compose") version "0.4.0"
+    id("org.jetbrains.compose") version "1.0.0-alpha3"
     id("com.android.library")
-    id("kotlin-android-extensions")
 }
 
 group = "dev.jomu"
@@ -18,7 +17,7 @@ kotlin {
     android()
     jvm("desktop") {
         compilations.all {
-            kotlinOptions.jvmTarget = "11"
+            kotlinOptions.jvmTarget = "1.8"
         }
     }
     sourceSets {
@@ -27,7 +26,8 @@ kotlin {
                 api(compose.runtime)
                 api(compose.foundation)
                 api(compose.material)
-                implementation(project(":runtime"))
+                api(project(":runtime"))
+                implementation(project(":ui"))
             }
         }
         val commonTest by getting {
@@ -43,7 +43,7 @@ kotlin {
         }
         val androidTest by getting {
             dependencies {
-                implementation("junit:junit:4.13")
+//                implementation("junit:junit:4.13")
             }
         }
         val desktopMain by getting

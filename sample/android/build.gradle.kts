@@ -1,5 +1,5 @@
 plugins {
-    id("org.jetbrains.compose") version "0.4.0"
+    id("org.jetbrains.compose") version "1.0.0-alpha3"
     id("com.android.application")
     kotlin("android")
 }
@@ -12,8 +12,13 @@ repositories {
 }
 
 dependencies {
+
     implementation(project(":sample:common"))
     implementation("androidx.activity:activity-compose:1.3.0-beta02")
+
+    val lifecycle_version = "2.4.0-alpha03"
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:$lifecycle_version")
 }
 
 android {
@@ -40,5 +45,14 @@ android {
         exclude("META-INF/notice.txt")
         exclude("META-INF/ASL2.0")
         exclude("META-INF/*.kotlin_module")
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
     }
 }
