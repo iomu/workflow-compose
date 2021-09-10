@@ -7,6 +7,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.StateFlow
 import org.junit.Test
 import kotlin.random.Random
 import kotlin.test.assertContentEquals

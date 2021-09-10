@@ -2,14 +2,14 @@ import org.jetbrains.compose.compose
 
 plugins {
     kotlin("multiplatform")
-    id("org.jetbrains.compose") version "1.0.0-alpha3"
+    alias(libs.plugins.compose)
     id("com.android.library")
     id("kotlin-android-extensions")
     id("maven-publish")
 }
 
 group = "dev.jomu.workflow"
-version = "0.1.0"
+version = "0.1.1"
 
 repositories {
     google()
@@ -18,6 +18,9 @@ repositories {
 kotlin {
     android {
         publishLibraryVariants("release", "debug")
+        compilations.all {
+            kotlinOptions.jvmTarget = "1.8"
+        }
     }
     jvm("desktop") {
         compilations.all {
@@ -27,28 +30,26 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                api(compose.runtime)
-                api(compose.foundation)
+                api(libs.compose.rutime)
+                api(libs.compose.foundation)
             }
         }
         val commonTest by getting {
             dependencies {
-//                implementation(kotlin("test"))
-                implementation("app.cash.turbine:turbine:0.6.0")
+                implementation(libs.turbine)
             }
         }
         val androidMain by getting {
             dependencies {
-                api("androidx.appcompat:appcompat:1.3.0")
-                api("androidx.core:core-ktx:1.3.1")
-                val lifecycle_version = "2.4.0-alpha03"
-                implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version")
-                implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:$lifecycle_version")
+                api(libs.androidx.appcompat)
+                api(libs.androidx.core)
+                api(libs.androidx.lifecycleViewmodelKtx)
+                api(libs.androidx.lifecycleViewmodelSavedState)
             }
         }
         val androidTest by getting {
             dependencies {
-                implementation("junit:junit:4.13")
+                implementation(libs.junit)
             }
         }
         val desktopMain by getting

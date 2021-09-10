@@ -1,5 +1,4 @@
 buildscript {
-    val kotlin_version by extra("1.5.30")
     repositories {
         gradlePluginPortal()
         google()
@@ -9,9 +8,8 @@ buildscript {
         }
     }
     dependencies {
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.21")
-        classpath("com.android.tools.build:gradle:4.0.1")
-        classpath("me.champeau.jmh:jmh-gradle-plugin:0.6.5")
+        classpath(libs.kotlin.gradle)
+        classpath(libs.android.gradle)
     }
 }
 

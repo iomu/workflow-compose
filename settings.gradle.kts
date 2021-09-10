@@ -11,11 +11,10 @@ pluginManagement {
 }
 rootProject.name = "workflow-compose"
 
+enableFeaturePreview("VERSION_CATALOGS")
 
 include(":sample:android")
 include(":sample:desktop")
 include(":sample:common")
 include("runtime")
 include("ui")
-include("benchmark")
-include(":benchmark2")

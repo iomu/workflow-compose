@@ -2,7 +2,7 @@ package dev.jomu.workflow.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.State
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -101,6 +101,7 @@ fun <RenderingT : Any>
         ViewRegistry.getFactoryForRendering(rendering: RenderingT): ViewFactory<RenderingT> {
     @Suppress("UNCHECKED_CAST")
     return getFactoryFor(rendering::class)
+        ?: (rendering as? State<*>)?.let { StateViewFactory as ViewFactory<RenderingT> }
         ?: throw IllegalArgumentException(
             "A ${ViewFactory::class.qualifiedName} should have been registered to display " +
                     "${rendering::class.qualifiedName} instances."
@@ -163,6 +164,17 @@ public fun WorkflowRendering(
         // minimum constraints are likely to be significant.
         Box(modifier, propagateMinConstraints = true) {
             viewFactory.Content(rendering, viewEnvironment)
+        }
+    }
+}
+
+object StateViewFactory : ViewFactory<State<*>> {
+    override val type: KClass<in State<*>> = State::class
+
+    @Composable
+    override fun Content(rendering: State<*>, viewEnvironment: ViewEnvironment) {
+        rendering.value?.let {
+            WorkflowRendering(it, viewEnvironment)
         }
     }
 }
