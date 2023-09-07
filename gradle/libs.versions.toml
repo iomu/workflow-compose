@@ -14,7 +14,7 @@ viewmodel = "2.4.0-alpha03"
 android-gradle = { module = "com.android.tools.build:gradle", version.ref = "pluginAndroid" }
 androidx-activity = { module = "androidx.activity:activity", version.ref = "androidxActivity" }
 androidx-activityKtx = { module = "androidx.activity:activity-ktx", version.ref = "androidxActivity" }
-androidx-core = "androidx.core:core-ktx:1.6.0"
+androidx-core = "androidx.core:core-ktx:1.12.0"
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
 androidx-lifecycle = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "viewmodel" }
 androidx-lifecycleViewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel", version.ref = "viewmodel" }
