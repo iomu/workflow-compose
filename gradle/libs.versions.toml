@@ -8,7 +8,7 @@ junit = "4.13.2"
 kotlin = "1.5.30"
 pluginAndroid = "7.0.2"
 turbine = "0.6.0"
-viewmodel = "2.4.0-alpha03"
+viewmodel = "2.8.6"
 
 [libraries]
 android-gradle = { module = "com.android.tools.build:gradle", version.ref = "pluginAndroid" }
